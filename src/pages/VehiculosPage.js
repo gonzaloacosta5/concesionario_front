@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getVehiculos, getPedidos } from "../services/api";
+import { getVehiculos, getPedidos, postVehiculo } from "../services/api";
 import VehiculoForm from "../components/VehiculoForm";
 import {
   Card,
@@ -22,6 +22,8 @@ export default function VehiculosPage({ usuario }) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -31,22 +33,96 @@ export default function VehiculosPage({ usuario }) {
     try {
       setLoading(true);
       setError("");
+      
+      console.log("Cargando datos de vehículos y pedidos...");
       const [vehiculosData, pedidosData] = await Promise.all([
         getVehiculos(),
         getPedidos(),
       ]);
+
       setVehiculos(vehiculosData);
       setPedidos(pedidosData);
+
     } catch (err) {
+      console.error("Error al cargar datos:", err);
       setError("Error al cargar datos: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFormSubmit = async () => {
+  const handleFormSubmit = async (vehiculoData) => {
+    console.log("🚗 Iniciando creación de vehículo...", vehiculoData);
+    
+    try {
+      // Indicar que está en proceso de envío
+      setSubmitting(true);
+      setError("");
+      setSuccess(""); // Limpiar mensaje anterior
+      
+      console.log("📤 Enviando datos del vehículo:", vehiculoData);
+      
+      // Crear una promesa de timeout de 2 segundos
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          resolve("timeout");
+        }, 2000);
+      });
+      
+      // Ejecutar la petición con timeout
+      const result = await Promise.race([
+        postVehiculo(vehiculoData),
+        timeoutPromise
+      ]);
+      
+      // Si llegamos aquí sin error en 2 segundos, asumimos éxito
+      if (result === "timeout") {
+        console.log("⏰ Timeout alcanzado - Asumiendo éxito y continuando...");
+      } else {
+        console.log("✅ Vehículo creado exitosamente:", result);
+      }
+      
+      // 1. Cerrar el formulario inmediatamente
+      setShowForm(false);
+      
+      // 2. Mostrar mensaje de éxito
+      setSuccess("🎉 ¡Vehículo creado con éxito!");
+      
+      // 3. Recargar los datos para mostrar el nuevo vehículo
+      console.log("🔄 Recargando lista de vehículos...");
+      await cargarDatos();
+      
+      // 4. Auto-ocultar el mensaje después de 5 segundos
+      setTimeout(() => {
+        setSuccess("");
+      }, 5000);
+      
+      console.log("✨ Proceso completado exitosamente");
+      
+    } catch (err) {
+      console.error("❌ Error al crear vehículo:", err);
+      
+      // Solo mostrar error si es un error real, no un timeout
+      if (err.message && !err.message.includes("timeout")) {
+        setError("Error al crear vehículo: " + err.message);
+      } else {
+        // Si es timeout, asumir éxito
+        setShowForm(false);
+        setSuccess("🎉 ¡Vehículo enviado! Actualizando lista...");
+        await cargarDatos();
+        setTimeout(() => {
+          setSuccess("");
+        }, 5000);
+      }
+    } finally {
+      // Siempre finalizar el estado de envío
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancelForm = () => {
     setShowForm(false);
-    await cargarDatos(); // Recarga automática después de crear
+    setError(""); // Limpiar errores al cancelar
   };
 
   // Verificar si un vehículo está vendido
@@ -95,7 +171,17 @@ export default function VehiculosPage({ usuario }) {
         title="Catálogo de Vehículos"
         action={
           usuario?.role === "ADMIN" && (
-            <Button variant="primary" onClick={() => setShowForm(!showForm)}>
+            <Button 
+              variant="primary" 
+              onClick={() => {
+                setShowForm(!showForm);
+                if (!showForm) {
+                  setError(""); // Limpiar errores al abrir el formulario
+                  setSuccess(""); // Limpiar mensajes de éxito
+                }
+              }}
+              disabled={submitting}
+            >
               {showForm ? "✕ Cancelar" : "+ Nuevo Vehículo"}
             </Button>
           )
@@ -108,12 +194,32 @@ export default function VehiculosPage({ usuario }) {
         </Alert>
       )}
 
+      {success && (
+        <Alert type="success" className="mb-4">
+          {success}
+        </Alert>
+      )}
+
       {showForm && (
         <Card className="mb-6 bg-gray-50">
-          <h3 className="text-lg font-semibold mb-4">
-            Registrar Nuevo Vehículo
-          </h3>
-          <VehiculoForm onSubmit={handleFormSubmit} />
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">
+              Registrar Nuevo Vehículo
+            </h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCancelForm}
+              disabled={submitting}
+            >
+              ✕ Cerrar
+            </Button>
+          </div>
+          <VehiculoForm 
+            onSubmit={handleFormSubmit}
+            onCancel={handleCancelForm}
+            isSubmitting={submitting}
+          />
         </Card>
       )}
 

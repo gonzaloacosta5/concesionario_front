@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Input, Select, Button, Alert } from "./ui/UIComponents";
 
-export default function VehiculoForm() {
+export default function VehiculoForm({ onSubmit, onCancel, isSubmitting }) {
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [color, setColor] = useState("");
@@ -11,38 +10,63 @@ export default function VehiculoForm() {
   const [precioBase, setPrecioBase] = useState("");
   const [tipo, setTipo] = useState("AUTO");
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setError(null);
+
+    // Validaciones básicas
+    if (!marca || !modelo || !color || !chasis || !motor || !precioBase) {
+      setError("Todos los campos son obligatorios");
+      return;
+    }
+
+    if (parseFloat(precioBase) <= 0) {
+      setError("El precio base debe ser mayor a 0");
+      return;
+    }
+
     try {
-      const res = await fetch("http://localhost:8080/api/vehiculos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          marca,
-          modelo,
-          color,
-          chasis,
-          motor,
-          precioBase: parseFloat(precioBase),
-          tipo,
-        }),
-      });
+      // Preparar datos para enviar
+      const vehiculoData = {
+        marca: marca.trim(),
+        modelo: modelo.trim(),
+        color: color.trim(),
+        chasis: chasis.trim(),
+        motor: motor.trim(),
+        precioBase: parseFloat(precioBase),
+        tipo,
+      };
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Error al crear vehículo");
-      }
+      console.log("🎯 VehiculoForm enviando datos:", vehiculoData);
 
-      await res.json();
-      navigate("/vehiculos");
+      // Llamar a la función onSubmit del componente padre
+      await onSubmit(vehiculoData);
+
+      // Limpiar el formulario después del envío exitoso
+      resetForm();
+
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      console.error("Error en VehiculoForm:", err);
+      setError(err.message || "Error al enviar el formulario");
+    }
+  };
+
+  const resetForm = () => {
+    setMarca("");
+    setModelo("");
+    setColor("");
+    setChasis("");
+    setMotor("");
+    setPrecioBase("");
+    setTipo("AUTO");
+    setError(null);
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    if (onCancel) {
+      onCancel();
     }
   };
 
@@ -50,12 +74,22 @@ export default function VehiculoForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <Alert type="error">{error}</Alert>}
 
+      {isSubmitting && (
+        <Alert type="info">
+          <div className="flex items-center">
+            <span className="animate-spin mr-2">⏳</span>
+            Enviando vehículo...
+          </div>
+        </Alert>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           label="Marca"
           value={marca}
           onChange={(e) => setMarca(e.target.value)}
           required
+          disabled={isSubmitting}
           placeholder="Toyota, Ford, etc."
         />
 
@@ -64,6 +98,7 @@ export default function VehiculoForm() {
           value={modelo}
           onChange={(e) => setModelo(e.target.value)}
           required
+          disabled={isSubmitting}
           placeholder="Corolla, Focus, etc."
         />
       </div>
@@ -74,6 +109,7 @@ export default function VehiculoForm() {
           value={color}
           onChange={(e) => setColor(e.target.value)}
           required
+          disabled={isSubmitting}
           placeholder="Rojo, Azul, Negro, etc."
         />
 
@@ -81,6 +117,7 @@ export default function VehiculoForm() {
           label="Tipo de Vehículo"
           value={tipo}
           onChange={(e) => setTipo(e.target.value)}
+          disabled={isSubmitting}
         >
           <option value="AUTO">Auto</option>
           <option value="CAMIONETA">Camioneta</option>
@@ -95,6 +132,7 @@ export default function VehiculoForm() {
           value={chasis}
           onChange={(e) => setChasis(e.target.value)}
           required
+          disabled={isSubmitting}
           placeholder="Ej: 1HGBH41JXMN109186"
         />
 
@@ -103,6 +141,7 @@ export default function VehiculoForm() {
           value={motor}
           onChange={(e) => setMotor(e.target.value)}
           required
+          disabled={isSubmitting}
           placeholder="Ej: 52WVC10338"
         />
       </div>
@@ -114,6 +153,7 @@ export default function VehiculoForm() {
         value={precioBase}
         onChange={(e) => setPrecioBase(e.target.value)}
         required
+        disabled={isSubmitting}
         placeholder="50000.00"
       />
 
@@ -124,21 +164,24 @@ export default function VehiculoForm() {
         </p>
         <ul className="text-sm text-blue-700 mt-2">
           <li>• Auto: 27% (21% nacional + 5% provincial + 1% adicional)</li>
-          <li>
-            • Camioneta: 17% (10% nacional + 5% provincial + 2% adicional)
-          </li>
+          <li>• Camioneta: 17% (10% nacional + 5% provincial + 2% adicional)</li>
           <li>• Moto/Camión: 5% (solo provincial)</li>
         </ul>
       </div>
 
       <div className="flex gap-2 pt-4">
-        <Button type="submit" disabled={loading}>
-          {loading ? "Guardando..." : "Crear Vehículo"}
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+          variant="primary"
+        >
+          {isSubmitting ? "Guardando..." : "Crear Vehículo"}
         </Button>
         <Button
           type="button"
           variant="secondary"
-          onClick={() => navigate("/vehiculos")}
+          onClick={handleCancel}
+          disabled={isSubmitting}
         >
           Cancelar
         </Button>
