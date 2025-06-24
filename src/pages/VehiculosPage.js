@@ -55,44 +55,36 @@ export default function VehiculosPage({ usuario }) {
     console.log("🚗 Iniciando creación de vehículo...", vehiculoData);
     
     try {
-      // Indicar que está en proceso de envío
       setSubmitting(true);
       setError("");
-      setSuccess(""); // Limpiar mensaje anterior
+      setSuccess(""); 
       
       console.log("📤 Enviando datos del vehículo:", vehiculoData);
       
-      // Crear una promesa de timeout de 2 segundos
       const timeoutPromise = new Promise((resolve) => {
         setTimeout(() => {
           resolve("timeout");
         }, 2000);
       });
       
-      // Ejecutar la petición con timeout
       const result = await Promise.race([
         postVehiculo(vehiculoData),
         timeoutPromise
       ]);
       
-      // Si llegamos aquí sin error en 2 segundos, asumimos éxito
       if (result === "timeout") {
         console.log("⏰ Timeout alcanzado - Asumiendo éxito y continuando...");
       } else {
         console.log("✅ Vehículo creado exitosamente:", result);
       }
       
-      // 1. Cerrar el formulario inmediatamente
       setShowForm(false);
       
-      // 2. Mostrar mensaje de éxito
       setSuccess("🎉 ¡Vehículo creado con éxito!");
       
-      // 3. Recargar los datos para mostrar el nuevo vehículo
       console.log("🔄 Recargando lista de vehículos...");
       await cargarDatos();
       
-      // 4. Auto-ocultar el mensaje después de 5 segundos
       setTimeout(() => {
         setSuccess("");
       }, 5000);
@@ -102,11 +94,9 @@ export default function VehiculosPage({ usuario }) {
     } catch (err) {
       console.error("❌ Error al crear vehículo:", err);
       
-      // Solo mostrar error si es un error real, no un timeout
       if (err.message && !err.message.includes("timeout")) {
         setError("Error al crear vehículo: " + err.message);
       } else {
-        // Si es timeout, asumir éxito
         setShowForm(false);
         setSuccess("🎉 ¡Vehículo enviado! Actualizando lista...");
         await cargarDatos();
@@ -115,17 +105,15 @@ export default function VehiculosPage({ usuario }) {
         }, 5000);
       }
     } finally {
-      // Siempre finalizar el estado de envío
       setSubmitting(false);
     }
   };
 
   const handleCancelForm = () => {
     setShowForm(false);
-    setError(""); // Limpiar errores al cancelar
+    setError(""); 
   };
 
-  // Verificar si un vehículo está vendido
   const estaVendido = (vehiculoId) => {
     return pedidos.some((pedido) => pedido.vehiculo?.id === vehiculoId);
   };
@@ -150,7 +138,6 @@ export default function VehiculosPage({ usuario }) {
     return precioBase * (porcentajes[tipo] || 0);
   };
 
-  // Filtrar vehículos según el rol
   const vehiculosFiltrados =
     usuario?.role === "VENDEDOR" || usuario?.role === "CLIENTE"
       ? vehiculos.filter((v) => !estaVendido(v.id))

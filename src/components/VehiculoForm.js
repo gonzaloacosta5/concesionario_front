@@ -15,7 +15,6 @@ export default function VehiculoForm({ onSubmit, onCancel, isSubmitting }) {
     e.preventDefault();
     setError(null);
 
-    // Validaciones básicas
     if (!marca || !modelo || !color || !chasis || !motor || !precioBase) {
       setError("Todos los campos son obligatorios");
       return;
@@ -27,7 +26,6 @@ export default function VehiculoForm({ onSubmit, onCancel, isSubmitting }) {
     }
 
     try {
-      // Preparar datos para enviar
       const vehiculoData = {
         marca: marca.trim(),
         modelo: modelo.trim(),
@@ -40,10 +38,8 @@ export default function VehiculoForm({ onSubmit, onCancel, isSubmitting }) {
 
       console.log("🎯 VehiculoForm enviando datos:", vehiculoData);
 
-      // Llamar a la función onSubmit del componente padre
       await onSubmit(vehiculoData);
 
-      // Limpiar el formulario después del envío exitoso
       resetForm();
 
     } catch (err) {
