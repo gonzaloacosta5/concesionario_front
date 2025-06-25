@@ -29,7 +29,7 @@ export async function postVehiculo(data) {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Error al crear vehículo");
-  return res.json();
+  return res.json();  
 }
 
 export async function getPedidos() {
