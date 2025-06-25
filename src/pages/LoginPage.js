@@ -5,6 +5,12 @@ export default function LoginPage({ onLogin }) {
     username: "",
     password: "",
     role: "CLIENTE",
+    // Campos extra para registro de Cliente
+    nombre: "",
+    apellido: "",
+    documento: "",
+    email: "",
+    telefono: "",
   });
   const [error, setError] = useState("");
   const [isRegister, setIsRegister] = useState(false);
@@ -17,30 +23,54 @@ export default function LoginPage({ onLogin }) {
     e.preventDefault();
     setError("");
     const API = "http://localhost:8080";
-    const endpoint = isRegister
-      ? `${API}/api/auth/register`
-      : `${API}/api/auth/login`;
 
     try {
-      const res = await fetch(endpoint, {
+      // 1) Registro o login
+      const authEndpoint = isRegister
+        ? `${API}/api/auth/register`
+        : `${API}/api/auth/login`;
+
+      const authRes = await fetch(authEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) {
-        // Intentamos leer el error del backend
-        let backendError = "";
-        try {
-          const errJson = await res.json();
-          backendError = errJson.message || "";
-        } catch {}
-        throw new Error(backendError || "Credenciales inválidas");
+
+      if (!authRes.ok) {
+        let be = "";
+        try { be = (await authRes.json()).message || ""; } catch {}
+        throw new Error(be || (isRegister ? "Error al registrar" : "Credenciales inválidas"));
       }
-      const data = await res.json();
-      onLogin(data); // Lo usará App.js
+      const userData = await authRes.json();
+
+      // 2) Si registramos, creamos también el Cliente
+      if (isRegister) {
+        const clienteBody = {
+          nombre: form.nombre,
+          apellido: form.apellido,
+          documento: form.documento,
+          email: form.email,
+          telefono: form.telefono,
+        };
+        const cliRes = await fetch(`${API}/api/clientes`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // Si tu endpoint requiere token:
+            // "Authorization": `Bearer ${userData.token}`
+          },
+          body: JSON.stringify(clienteBody),
+        });
+        if (!cliRes.ok) {
+          console.warn("Warning: no se creó Cliente en BD", await cliRes.text());
+        }
+      }
+
+      // 3) Llamamos onLogin para guardar el usuario en App.js
+      onLogin(userData);
+
     } catch (err) {
       setError(err.message || "Error de red o servidor");
-      // Log extra para debugging
       console.error("Login/Register error:", err);
     }
   }
@@ -48,7 +78,9 @@ export default function LoginPage({ onLogin }) {
   return (
     <div className="login-bg">
       <form className="login-card" onSubmit={handleSubmit}>
-        <h2>{isRegister ? "Registro" : "Login"} de Usuario</h2>
+        <h2>{isRegister ? "Registro de Usuario" : "Login de Usuario"}</h2>
+
+        {/* Campos comunes */}
         <input
           className="input"
           name="username"
@@ -67,6 +99,8 @@ export default function LoginPage({ onLogin }) {
           onChange={handleChange}
           required
         />
+
+        {/* Selector de rol */}
         {isRegister && (
           <select
             className="input"
@@ -80,7 +114,60 @@ export default function LoginPage({ onLogin }) {
             <option value="VENDEDOR">Vendedor</option>
           </select>
         )}
+
+        {/* Campos adicionales solo en registro */}
+        {isRegister && (
+          <>
+            <input
+              className="input"
+              name="nombre"
+              type="text"
+              placeholder="Nombre"
+              value={form.nombre}
+              onChange={handleChange}
+              required
+            />
+            <input
+              className="input"
+              name="apellido"
+              type="text"
+              placeholder="Apellido"
+              value={form.apellido}
+              onChange={handleChange}
+              required
+            />
+            <input
+              className="input"
+              name="documento"
+              type="text"
+              placeholder="Documento"
+              value={form.documento}
+              onChange={handleChange}
+              required
+            />
+            <input
+              className="input"
+              name="email"
+              type="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+            <input
+              className="input"
+              name="telefono"
+              type="text"
+              placeholder="Teléfono"
+              value={form.telefono}
+              onChange={handleChange}
+              required
+            />
+          </>
+        )}
+
         {error && <div className="error">{error}</div>}
+
         <button className="button" type="submit">
           {isRegister ? "Registrarse" : "Ingresar"}
         </button>

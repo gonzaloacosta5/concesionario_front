@@ -4,7 +4,7 @@ import { Alert, Button } from "../components/ui/UIComponents";
 
 export default function ReportesPage() {
   const [desde, setDesde] = useState('2025-01-01');
-  const [hasta, setHasta] = useState('2025-06-18');
+  const [hasta, setHasta] = useState('2025-06-26');
   const [estado, setEstado] = useState('');
   const [pedidos, setPedidos]     = useState([]);
   const [totales, setTotales]     = useState({});

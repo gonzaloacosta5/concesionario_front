@@ -100,7 +100,7 @@ export default function PedidosPage({ usuario }) {
           usuario?.role === "CLIENTE" ? "Mis Pedidos" : "Gestión de Pedidos"
         }
         action={
-          usuario?.role === "ADMIN" && (
+          (usuario.role === "ADMIN" || usuario.role === "CLIENTE") && (
             <Button variant="primary" onClick={() => setShowForm(!showForm)}>
               {showForm ? "✕ Cancelar" : "+ Nuevo Pedido"}
             </Button>
