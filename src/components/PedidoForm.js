@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getClientes, getVehiculos } from "../services/api";
-import { Select, Input, Button, Alert } from "./ui/UIComponents";
+import { Input, Select, Button, Alert } from "./ui/UIComponents";
+
+/**
+ * Formatea valores numéricos en formato moneda de manera segura.
+ * Devuelve "-" si el valor es nulo, undefined o no numérico.
+ */
+const formatMoney = (value, locale = "es-AR") => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toLocaleString(locale) : "-";
+};
 
 export default function PedidoForm() {
   const [clientes, setClientes] = useState([]);
@@ -10,10 +19,12 @@ export default function PedidoForm() {
   const [vehiculoId, setVehiculoId] = useState("");
   const [configuracionExtra, setConfiguracionExtra] = useState("");
   const [formaPago, setFormaPago] = useState("CONTADO");
-  const [error, setError] = useState(null);
+  const [error , setError ] = useState(null);
+  const [okMsg , setOkMsg ] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  /* ───────────────────── Carga inicial de datos ──────────────────── */
   useEffect(() => {
     Promise.all([getClientes(), getVehiculos()])
       .then(([clientesData, vehiculosData]) => {
@@ -23,9 +34,20 @@ export default function PedidoForm() {
       .catch((err) => setError(err.message));
   }, []);
 
+  /* ───────────────────── Envío del formulario ────────────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Evitar envío si faltan datos
+    if (!clienteId || !vehiculoId) {
+      setError("Debes seleccionar un cliente y un vehículo");
+      return;
+    }
+
     setLoading(true);
+    setError(null);
+    setOkMsg("Vehículo creado correctamente");
+
     try {
       const numeroPedido = `PED-${Date.now()}`;
 
@@ -33,20 +55,22 @@ export default function PedidoForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          numeroPedido: numeroPedido,
-          cliente: { id: parseInt(clienteId) },
-          vehiculo: { id: parseInt(vehiculoId) },
-          configuracionExtra: configuracionExtra,
-          formaPago: formaPago,
+          numeroPedido,
+          cliente: { id: Number(clienteId) },
+          vehiculo: { id: Number(vehiculoId) },
+          configuracionExtra,
+          formaPago,
         }),
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Error al crear pedido");
+        const { message } = await res.json();
+        throw new Error(message || "Error al crear pedido");
       }
 
       await res.json();
+      setOkMsg("Pedido creado correctamente");
+      setTimeout(() => navigate("/pedidos"), 1200);
       navigate("/pedidos");
     } catch (err) {
       setError(err.message);
@@ -55,14 +79,18 @@ export default function PedidoForm() {
     }
   };
 
+  /* ───────────────────── Helpers derivados ───────────────────────── */
   const vehiculoSeleccionado = vehiculos.find(
-    (v) => v.id === parseInt(vehiculoId)
+    (v) => v.id === Number(vehiculoId)
   );
 
+  /* ────────────────────────── Render ─────────────────────────────── */
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {okMsg && <Alert type="success">{okMsg}</Alert>}
       {error && <Alert type="error">{error}</Alert>}
 
+      {/* Selección de cliente */}
       <Select
         label="Cliente"
         value={clienteId}
@@ -77,6 +105,7 @@ export default function PedidoForm() {
         ))}
       </Select>
 
+      {/* Selección de vehículo */}
       <Select
         label="Vehículo"
         value={vehiculoId}
@@ -86,24 +115,25 @@ export default function PedidoForm() {
         <option value="">Selecciona un vehículo...</option>
         {vehiculos.map((v) => (
           <option key={v.id} value={v.id}>
-            {v.marca} {v.modelo} ({v.tipo}) - ${v.precioBase.toLocaleString()}
+            {v.marca} {v.modelo} ({v.tipo}) - ${formatMoney(v.precioBase)}
           </option>
         ))}
       </Select>
 
+      {/* Resumen del vehículo seleccionado */}
       {vehiculoSeleccionado && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <p className="text-sm font-semibold text-green-800 mb-2">
             Vehículo seleccionado:
           </p>
-          <div className="text-sm text-green-700">
+          <div className="text-sm text-green-700 space-y-1">
             <p>
               {vehiculoSeleccionado.marca} {vehiculoSeleccionado.modelo}
             </p>
             <p>Color: {vehiculoSeleccionado.color}</p>
             <p>Tipo: {vehiculoSeleccionado.tipo}</p>
             <p>
-              Precio base: ${vehiculoSeleccionado.precioBase.toLocaleString()}
+              Precio base: ${formatMoney(vehiculoSeleccionado.precioBase)}
             </p>
             <p className="font-semibold mt-2">
               El precio final con impuestos se calculará automáticamente
@@ -112,6 +142,7 @@ export default function PedidoForm() {
         </div>
       )}
 
+      {/* Configuración extra */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Configuración Extra (opcional)
@@ -125,6 +156,7 @@ export default function PedidoForm() {
         />
       </div>
 
+      {/* Forma de pago */}
       <Select
         label="Forma de Pago"
         value={formaPago}
@@ -135,6 +167,7 @@ export default function PedidoForm() {
         <option value="TARJETA">Tarjeta</option>
       </Select>
 
+      {/* Acciones */}
       <div className="flex gap-2 pt-4">
         <Button type="submit" disabled={loading}>
           {loading ? "Creando pedido..." : "Crear Pedido"}

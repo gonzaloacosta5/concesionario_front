@@ -11,6 +11,7 @@ export default function PagoForm({ pedidoId }) {
   const [fechaExp, setFechaExp] = useState("");
   const [cvv, setCvv] = useState("");
   const [error, setError] = useState(null);
+  const [okMsg, setOkMsg] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -49,6 +50,7 @@ export default function PagoForm({ pedidoId }) {
 
       await res.json();
       setError(null);
+      setOkMsg("Vehículo creado correctamente");
       alert("Pago registrado exitosamente");
       // Limpiar formulario
       setDescuento("0");

@@ -1,19 +1,53 @@
-import React, { useState } from 'react';
-import { getReportePedidos, getTotales } from '../services/api';
+import React, { useState } from "react";
+import {getReportePedidos,getTotales,exportPedidosCsv,} from "../services/api";
+import { Alert, Button } from "../components/ui/UIComponents";
 
 export default function ReportesPage() {
   const [desde, setDesde] = useState('2025-01-01');
   const [hasta, setHasta] = useState('2025-06-18');
   const [estado, setEstado] = useState('');
-  const [pedidos, setPedidos] = useState([]);
-  const [totales, setTotales] = useState({});
+  const [pedidos, setPedidos]     = useState([]);
+  const [totales, setTotales]     = useState({});
+  const [okMsg , setOkMsg]        = useState("");
+  const [errMsg, setErrMsg]       = useState("");
 
   const loadReporte = () => {
-    getReportePedidos(desde, estado).then(setPedidos).catch(console.error);
+    setOkMsg(""); setErrMsg("");
+    getReportePedidos(desde, estado)
+      .then((data) => { setPedidos(data); setOkMsg("Pedidos cargados"); })
+      .catch((e)   => setErrMsg(e.message));
   };
   const loadTotales = () => {
-    getTotales(desde, hasta, false).then(setTotales).catch(console.error);
+    setOkMsg(""); setErrMsg("");
+    getTotales(desde, hasta, false)
+      .then((data) => { setTotales(data); setOkMsg("Totales cargados"); })
+      .catch((e)   => setErrMsg(e.message));
   };
+
+const downloadCsv = () => {
+  setOkMsg("");
+  setErrMsg("");
+
+  exportPedidosCsv(desde, hasta, estado || undefined)
+    .then(({ blob, filename }) => {        
+      const url  = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href     = url;
+      link.download = filename;           
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+      }, 150);                   
+
+      setOkMsg("CSV descargado correctamente");
+    })
+    .catch((e) => setErrMsg(e.message));
+};
+
 
   return (
     <div className="card">
@@ -34,9 +68,14 @@ export default function ReportesPage() {
         </div>
       </div>
 
-      <button className="button" onClick={loadReporte}>Cargar Pedidos</button>
-      <button className="button" onClick={loadTotales}>Cargar Totales</button>
+      <div style={{ display:'flex', gap:'1rem', marginBottom:'1rem' }}>
+        <Button variant="primary" onClick={loadReporte}>Cargar Pedidos</Button>
+        <Button variant="primary" onClick={loadTotales}>Cargar Totales</Button>
+        <Button variant="outline" onClick={downloadCsv}>Exportar CSV</Button>
+      </div>
 
+      {errMsg && <Alert type="error"   className="mb-4">{errMsg}</Alert>}
+      {okMsg  && <Alert type="success" className="mb-4">{okMsg}</Alert>}
       <h3 style={{ marginTop:'1rem' }}>Pedidos</h3>
       <ul className="list">
         {pedidos.map(p=>(

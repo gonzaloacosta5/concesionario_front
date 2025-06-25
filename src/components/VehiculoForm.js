@@ -11,6 +11,7 @@ export default function VehiculoForm() {
   const [precioBase, setPrecioBase] = useState("");
   const [tipo, setTipo] = useState("AUTO");
   const [error, setError] = useState(null);
+  const [okMsg, setOkMsg] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -48,6 +49,7 @@ export default function VehiculoForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {okMsg && <Alert type="success">{okMsg}</Alert>}
       {error && <Alert type="error">{error}</Alert>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

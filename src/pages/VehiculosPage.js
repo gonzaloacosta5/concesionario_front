@@ -151,11 +151,9 @@ export default function VehiculosPage({ usuario }) {
             </TableHeader>
             <TableBody>
               {vehiculosFiltrados.map((vehiculo) => {
-                const impuestos = calcularImpuestos(
-                  vehiculo.tipo,
-                  vehiculo.precioBase
-                );
-                const precioFinal = vehiculo.precioBase + impuestos;
+                const precioBase = Number(vehiculo.precioBase ?? 0);
+                const impuestos   = calcularImpuestos(vehiculo.tipo, precioBase);
+                const precioFinal = precioBase + impuestos;
                 const vendido = estaVendido(vehiculo.id);
 
                 return (
@@ -187,7 +185,7 @@ export default function VehiculosPage({ usuario }) {
                       {vehiculo.motor}
                     </TableCell>
                     <TableCell className="text-gray-900">
-                      ${vehiculo.precioBase.toLocaleString()}
+                      ${precioBase.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-gray-500">
                       ${impuestos.toLocaleString()}

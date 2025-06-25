@@ -128,3 +128,23 @@ export async function getTotales(desde, hasta, incluirImpuestos) {
   if (!res.ok) throw new Error("Error al cargar totales");
   return res.json();
 }
+
+export async function exportPedidosCsv(desde, hasta, estado = "") {
+  const params = new URLSearchParams({
+    desde,
+    hasta,
+    ...(estado && { estado }),
+  }).toString();
+
+  const res = await fetch(`${BASE}/reportes/pedidos/csv?${params}`);
+
+  if (!res.ok) {
+    const { message } = await res.json().catch(() => ({}));
+    throw new Error(message || "Error al exportar CSV");
+  }
+  const blob = await res.blob();
+  const dispo = res.headers.get("Content-Disposition") || "";
+  const match = /filename=\"?([^\";]+)\"?/i.exec(dispo);
+  const filename = match ? match[1] : "reporte_pedidos.csv";
+  return { blob, filename };
+}

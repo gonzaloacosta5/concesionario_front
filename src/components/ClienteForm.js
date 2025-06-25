@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input, Button, Alert } from "./ui/UIComponents";
+import { Input, Select, Button, Alert } from "./ui/UIComponents";
 
 export default function ClienteForm() {
   const [nombre, setNombre] = useState("");
@@ -9,6 +9,7 @@ export default function ClienteForm() {
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
   const [error, setError] = useState(null);
+  const [okMsg, setOkMsg] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -38,6 +39,7 @@ export default function ClienteForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {okMsg && <Alert type="success">{okMsg}</Alert>}
       {error && <Alert type="error">{error}</Alert>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
